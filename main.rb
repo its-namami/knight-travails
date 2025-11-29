@@ -3,11 +3,21 @@
 require 'pp'
 require 'debug'
 
-# manages the board
+# add #legal? method to check for legal position on board
+class Array
+  def legal?
+    case self
+    in [0...8, 0...8] then true
+    else false
+    end
+  end
+end
+
+# manages the 8x8 board
 class Board
   attr_accessor :board, :position, :knight
 
-  MOVES = [
+  KNIGHT_MOVES = [
     [1, 2], # Start
     [2, -1],   # Bottom Right
     [1, -2],   # Bottom Right
@@ -29,39 +39,41 @@ class Board
   end
 
   def generate_level(position = self.position)
-    MOVES.inject([]) do |possible_moves, move|
+    possible_moves = []
+
+    KNIGHT_MOVES.each do |move|
       result = position.zip(move).map { |x, y| x + y }
 
-      if (0...8).include?(result[0]) && (0...8).include?(result[1])
-        possible_moves << result
-      else
-        possible_moves
-      end
+      possible_moves << result if result.legal?
     end
+
+    possible_moves
   end
 end
 
 board = Board.new
 pp(board.board)
 
-board.position = [0, 0]
+board.position = [0, 7]
 board.knight = [7, 7]
+
+board.position.legal? && board.knight.legal? || raise
+
 puts "Pos: #{board.position.inspect}"
 puts "Kni: #{board.knight.inspect}"
 
-levels = [board.generate_level]
-steps = 1
+puts board.generate_level.inspect
 
-until levels.any? { |level| level.any? { |pos| pos.eql?(board.knight) } }
-  levels_clone = levels.clone
-  new_level = []
-  steps += 1
+current_level = [board.position]
+queue = []
 
-  levels_clone.each do |level|
-    level.each { |pos| new_level << board.generate_level(pos) }
+until current_level.last == board.knight
+  board.generate_level(current_level.last).each do |level|
+    queue << current_level + [level]
   end
 
-  levels += new_level
+  current_level = queue.shift
 end
 
-puts "It took #{steps} steps to got from p#{board.position} to k#{board.knight}"
+puts "It took #{current_level.size} steps to move the knight from #{board.position} to #{board.knight}"
+current_level.each { |position| pp position }
